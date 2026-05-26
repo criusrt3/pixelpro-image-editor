@@ -1,0 +1,185 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* === Dark theme as default (tool-like app) === */
+    --background: 228 20% 8%;
+    --foreground: 220 15% 92%;
+
+    --card: 228 18% 11%;
+    --card-foreground: 220 15% 92%;
+
+    --popover: 228 20% 10%;
+    --popover-foreground: 220 15% 92%;
+
+    /* Brand: Electric Violet */
+    --primary: 262 83% 65%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 228 18% 16%;
+    --secondary-foreground: 220 15% 80%;
+
+    --muted: 228 15% 14%;
+    --muted-foreground: 220 10% 50%;
+
+    --accent: 262 60% 25%;
+    --accent-foreground: 262 83% 85%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 228 15% 18%;
+    --input: 228 15% 16%;
+    --ring: 262 83% 65%;
+    --radius: 0.625rem;
+
+    /* === Surface tokens === */
+    --surface: 228 18% 12%;
+    --surface-raised: 228 16% 15%;
+    --surface-overlay: 228 20% 18%;
+
+    /* === Brand tokens === */
+    --brand: 262 83% 65%;
+    --brand-dim: 262 60% 40%;
+    --brand-glow: 270 100% 75%;
+
+    /* === Gradients === */
+    --gradient-brand: linear-gradient(135deg, hsl(262, 83%, 65%), hsl(210, 100%, 65%));
+    --gradient-subtle: linear-gradient(180deg, hsl(228, 20%, 9%), hsl(228, 18%, 7%));
+    --gradient-card: linear-gradient(145deg, hsl(228, 18%, 13%), hsl(228, 20%, 10%));
+
+    /* === Shadows === */
+    --shadow-glow-sm: 0 0 12px hsl(262 83% 65% / 0.25);
+    --shadow-glow: 0 0 30px hsl(262 83% 65% / 0.35), 0 0 60px hsl(262 83% 65% / 0.15);
+    --shadow-glow-lg: 0 0 60px hsl(262 83% 65% / 0.5), 0 0 120px hsl(262 83% 65% / 0.2);
+    --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.4), 0 1px 4px hsl(0 0% 0% / 0.3);
+    --shadow-elevated: 0 8px 40px hsl(0 0% 0% / 0.5), 0 2px 8px hsl(0 0% 0% / 0.4);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background-image: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, hsl(262 83% 65% / 0.08), transparent),
+      radial-gradient(ellipse 60% 40% at 80% 60%, hsl(210 100% 65% / 0.04), transparent);
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .surface-glass {
+    background: hsl(var(--surface) / 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--border) / 0.6);
+  }
+
+  .surface-card {
+    background: var(--gradient-card);
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-card);
+  }
+
+  .btn-brand {
+    background: var(--gradient-brand);
+    color: white;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-glow-sm);
+  }
+
+  .btn-brand:hover {
+    box-shadow: var(--shadow-glow);
+    transform: translateY(-1px);
+  }
+
+  .btn-brand:active {
+    transform: translateY(0);
+  }
+
+  .shimmer-bg {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--surface)) 0%,
+      hsl(var(--surface-raised)) 50%,
+      hsl(var(--surface)) 100%
+    );
+    background-size: 200% auto;
+    animation: shimmer 2s linear infinite;
+  }
+
+  .checkered-bg {
+    background-image: 
+      linear-gradient(45deg, hsl(var(--border) / 0.5) 25%, transparent 25%),
+      linear-gradient(-45deg, hsl(var(--border) / 0.5) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, hsl(var(--border) / 0.5) 75%),
+      linear-gradient(-45deg, transparent 75%, hsl(var(--border) / 0.5) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  }
+
+  .tool-tab-active {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    border-color: hsl(var(--brand) / 0.5);
+  }
+
+  .slider-thumb::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--gradient-brand);
+    cursor: pointer;
+    box-shadow: var(--shadow-glow-sm);
+  }
+
+  .slider-thumb::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--gradient-brand);
+    cursor: pointer;
+    border: none;
+    box-shadow: var(--shadow-glow-sm);
+  }
+}
