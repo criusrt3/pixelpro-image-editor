@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Download, FileImage, Loader2, Info, Brush, Eraser as EraserIcon,
   RotateCcw, Wand2, Layers, Upload, Trash2,
@@ -6,6 +6,8 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { usePinchZoom } from '@/hooks/usePinchZoom'
+import ZoomControls from '@/components/ZoomControls'
 
 interface CutoutPanelProps {
   imageDataUrl: string | null
@@ -176,6 +178,14 @@ export default function CutoutPanel({ imageDataUrl }: CutoutPanelProps) {
     }
   }
 
+  const getPosFromClient = (clientX: number, clientY: number, canvas: HTMLCanvasElement) => {
+    const rect = canvas.getBoundingClientRect()
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height)
+    }
+  }
+
   const paintStroke = (x1: number, y1: number, x2: number, y2: number) => {
     const sc = strokesRef.current; if (!sc) return
     const sctx = sc.getContext('2d', { willReadFrequently: true })!
@@ -230,6 +240,53 @@ export default function CutoutPanel({ imageDataUrl }: CutoutPanelProps) {
     lastPos.current = pos
   }
   const handleCutoutMouseUp = () => { isDrawing.current = false; lastPos.current = null }
+
+  // ── Pinch zoom for cutout canvas (draw mode) ──────────────────
+  const cutoutPinch = usePinchZoom({
+    onSingleTouchStart: (cx, cy) => {
+      if (cutoutMode !== 'manual') return
+      isDrawing.current = true
+      const pos = getPosFromClient(cx, cy, cutoutCanvasRef.current!)
+      lastPos.current = pos; paintStroke(pos.x, pos.y, pos.x, pos.y)
+    },
+    onSingleTouchMove: (cx, cy) => {
+      if (!isDrawing.current || !lastPos.current || cutoutMode !== 'manual') return
+      const pos = getPosFromClient(cx, cy, cutoutCanvasRef.current!)
+      paintStroke(lastPos.current.x, lastPos.current.y, pos.x, pos.y)
+      lastPos.current = pos
+    },
+    onSingleTouchEnd: () => { isDrawing.current = false; lastPos.current = null },
+  })
+
+  // ── Pinch zoom for compose canvas (drag mode) ─────────────────
+  const composePinch = usePinchZoom({
+    onSingleTouchStart: (cx, cy) => {
+      const canvas = composeCanvasRef.current!
+      const pos = getPosFromClient(cx, cy, canvas)
+      // hit test from top
+      let hit: PlacedItem | null = null
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i]
+        const img = new Image(); img.src = it.dataUrl
+        const hw = (img.naturalWidth * it.scale) / 2
+        const hh = (img.naturalHeight * it.scale) / 2
+        const dx = pos.x - it.x, dy = pos.y - it.y
+        if (Math.abs(dx) < hw + 20 && Math.abs(dy) < hh + 20) { hit = it; break }
+      }
+      if (hit) {
+        setSelectedItem(hit.id)
+        dragRef.current = { id: hit.id, startMx: pos.x, startMy: pos.y, origX: hit.x, origY: hit.y }
+      } else setSelectedItem(null)
+    },
+    onSingleTouchMove: (cx, cy) => {
+      if (!dragRef.current) return
+      const canvas = composeCanvasRef.current!
+      const pos = getPosFromClient(cx, cy, canvas)
+      const { id, startMx, startMy, origX, origY } = dragRef.current
+      setItems(prev => prev.map(it => it.id === id ? { ...it, x: origX + pos.x - startMx, y: origY + pos.y - startMy } : it))
+    },
+    onSingleTouchEnd: () => { dragRef.current = null },
+  })
 
   // ── Auto cutout (flood fill from edges) ─────────────────────
   const runAutoCutout = async () => {
@@ -575,18 +632,23 @@ export default function CutoutPanel({ imageDataUrl }: CutoutPanelProps) {
           )}
 
           {/* Canvas preview */}
-          <div className="relative rounded-xl overflow-hidden border border-border checkered-bg">
-            <canvas ref={cutoutCanvasRef}
-              className={cn('w-full block select-none',cutoutMode==='manual'?'cursor-crosshair':'cursor-default')}
-              onMouseDown={handleCutoutMouseDown} onMouseMove={handleCutoutMouseMove}
-              onMouseUp={handleCutoutMouseUp} onMouseLeave={handleCutoutMouseUp}/>
-            <canvas ref={maskCanvasRef} className="hidden"/>
-            {cutoutMode==='manual'&&(
-              <div className="absolute bottom-2 left-2 flex gap-2 pointer-events-none">
-                <span className="text-[10px] bg-emerald-500/80 text-white px-1.5 py-0.5 rounded">绿=保留</span>
-                <span className="text-[10px] bg-red-500/80 text-white px-1.5 py-0.5 rounded">红=去除</span>
-              </div>
-            )}
+          <div ref={cutoutPinch.viewportRef} className="relative rounded-xl overflow-hidden border border-border checkered-bg">
+            <div style={cutoutPinch.wrapperStyle}>
+              <canvas ref={cutoutCanvasRef}
+                className={cn('w-full block select-none',cutoutMode==='manual'?'cursor-crosshair':'cursor-default')}
+                style={{ touchAction: 'none' }}
+                onMouseDown={handleCutoutMouseDown} onMouseMove={handleCutoutMouseMove}
+                onMouseUp={handleCutoutMouseUp} onMouseLeave={handleCutoutMouseUp}
+                {...cutoutPinch.handlers}/>
+              <canvas ref={maskCanvasRef} className="hidden"/>
+              {cutoutMode==='manual'&&(
+                <div className="absolute bottom-2 left-2 flex gap-2 pointer-events-none">
+                  <span className="text-[10px] bg-emerald-500/80 text-white px-1.5 py-0.5 rounded">绿=保留</span>
+                  <span className="text-[10px] bg-red-500/80 text-white px-1.5 py-0.5 rounded">红=去除</span>
+                </div>
+              )}
+            </div>
+            <ZoomControls zoom={cutoutPinch.zoom} onZoomIn={() => cutoutPinch.setZoom(z => z + 0.25)} onZoomOut={() => cutoutPinch.setZoom(z => z - 0.25)} onReset={cutoutPinch.resetView} />
           </div>
 
           {/* Action buttons */}
@@ -669,10 +731,14 @@ export default function CutoutPanel({ imageDataUrl }: CutoutPanelProps) {
           </div>
 
           {/* Compose canvas */}
-          <div className="relative rounded-xl overflow-hidden border border-border">
-            <canvas ref={composeCanvasRef} className="w-full block cursor-move select-none"
-              onMouseDown={handleComposeMouseDown} onMouseMove={handleComposeMouseMove}
-              onMouseUp={handleComposeMouseUp} onMouseLeave={handleComposeMouseUp}/>
+          <div ref={composePinch.viewportRef} className="relative rounded-xl overflow-hidden border border-border">
+            <div style={composePinch.wrapperStyle}>
+              <canvas ref={composeCanvasRef} className="w-full block cursor-move select-none"
+                style={{ touchAction: 'none' }}
+                onMouseDown={handleComposeMouseDown} onMouseMove={handleComposeMouseMove}
+                onMouseUp={handleComposeMouseUp} onMouseLeave={handleComposeMouseUp}
+                {...composePinch.handlers}/>
+            </div>
             {items.length===0&&(
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <p className="text-xs text-muted-foreground bg-black/50 px-3 py-2 rounded-lg backdrop-blur-sm">
@@ -680,6 +746,7 @@ export default function CutoutPanel({ imageDataUrl }: CutoutPanelProps) {
                 </p>
               </div>
             )}
+            <ZoomControls zoom={composePinch.zoom} onZoomIn={() => composePinch.setZoom(z => z + 0.25)} onZoomOut={() => composePinch.setZoom(z => z - 0.25)} onReset={composePinch.resetView} />
           </div>
 
           {/* Add cutout button */}

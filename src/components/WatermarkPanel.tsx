@@ -1,6 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Eraser, MousePointer, Brush, Download, RotateCcw, FileImage, Loader2, Info, Scan } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { usePinchZoom } from '@/hooks/usePinchZoom'
+import ZoomControls from '@/components/ZoomControls'
 
 interface WatermarkPanelProps {
   imageDataUrl: string | null
@@ -23,8 +25,50 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
   const imgRef = useRef<HTMLImageElement | null>(null)
   const lastPos = useRef<{ x: number; y: number } | null>(null)
   const rectStart = useRef<{ x: number; y: number } | null>(null)
-  // store accumulated brush strokes so rect preview doesn't wipe them
   const strokesCanvasRef = useRef<HTMLCanvasElement | null>(null)
+
+  const getPosFromClient = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current!
+    const rect = canvas.getBoundingClientRect()
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height)
+    }
+  }
+
+  const getPos = (e: React.MouseEvent) => getPosFromClient(e.clientX, e.clientY)
+
+  const pinch = usePinchZoom({
+    onSingleTouchStart: (cx, cy) => {
+      setIsDrawing(true)
+      const pos = getPosFromClient(cx, cy)
+      lastPos.current = pos
+      if (activeTool === 'rect') {
+        rectStart.current = pos
+      } else {
+        paintBrush(pos.x, pos.y, pos.x, pos.y)
+      }
+    },
+    onSingleTouchMove: (cx, cy) => {
+      if (!isDrawing) return
+      const pos = getPosFromClient(cx, cy)
+      if (activeTool === 'brush' && lastPos.current) {
+        paintBrush(lastPos.current.x, lastPos.current.y, pos.x, pos.y)
+      } else if (activeTool === 'rect' && rectStart.current) {
+        previewRect(rectStart.current, pos)
+      }
+      lastPos.current = pos
+    },
+    onSingleTouchEnd: () => {
+      if (!isDrawing) return
+      if (activeTool === 'rect' && rectStart.current && lastPos.current) {
+        commitRect(rectStart.current, lastPos.current)
+      }
+      setIsDrawing(false)
+      lastPos.current = null
+      rectStart.current = null
+    },
+  })
 
   useEffect(() => {
     if (!imageDataUrl) return
@@ -49,21 +93,11 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
     const h = Math.round(img.naturalHeight * scale)
     canvas.width = w; canvas.height = h
     maskCanvas.width = w; maskCanvas.height = h
-    // init strokes canvas
     const sc = document.createElement('canvas')
     sc.width = w; sc.height = h
     strokesCanvasRef.current = sc
     canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
     maskCanvas.getContext('2d')!.clearRect(0, 0, w, h)
-  }
-
-  const getPos = (e: React.MouseEvent) => {
-    const canvas = canvasRef.current!
-    const rect = canvas.getBoundingClientRect()
-    return {
-      x: (e.clientX - rect.left) * (canvas.width / rect.width),
-      y: (e.clientY - rect.top) * (canvas.height / rect.height)
-    }
   }
 
   const startDraw = (e: React.MouseEvent) => {
@@ -106,9 +140,7 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
     if (!sc || !maskCanvas) return
     const mctx = maskCanvas.getContext('2d')!
     mctx.clearRect(0, 0, maskCanvas.width, maskCanvas.height)
-    // paste existing brush strokes
     mctx.drawImage(sc, 0, 0)
-    // draw current rect preview
     mctx.fillStyle = 'rgba(168, 85, 247, 0.65)'
     mctx.fillRect(start.x, start.y, end.x - start.x, end.y - start.y)
     renderFinal()
@@ -175,7 +207,6 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
     const maskData = maskCanvas.getContext('2d')!.getImageData(0, 0, maskCanvas.width, maskCanvas.height)
     const imgData = octx.getImageData(0, 0, W, H)
 
-    // Build full-res mask
     const fullMask = new Uint8Array(W * H)
     for (let my = 0; my < maskCanvas.height; my++) {
       for (let mx = 0; mx < maskCanvas.width; mx++) {
@@ -190,14 +221,12 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
       }
     }
 
-    // Multi-pass inpainting: expand boundary fill radius per pass
     for (let pass = 0; pass < 3; pass++) {
       const radius = 18 + pass * 12
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
           if (!fullMask[y * W + x]) continue
           let r = 0, g = 0, b = 0, cnt = 0
-          // weighted by distance - closer boundary pixels count more
           for (let dy = -radius; dy <= radius; dy++) {
             for (let dx = -radius; dx <= radius; dx++) {
               const nx = x + dx, ny = y + dy
@@ -227,7 +256,6 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
     const url = outputCanvas.toDataURL('image/jpeg', 0.95)
     setResultUrl(url)
 
-    // Update canvas display
     const canvas = canvasRef.current!
     const ctx = canvas.getContext('2d')!
     const ri = new Image()
@@ -239,7 +267,7 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
     setIsProcessing(false)
   }
 
-  // ---- Scattered watermark: frequency-based subtraction ----
+  // ---- Scattered watermark ----
   const handleScattered = async () => {
     const img = imgRef.current
     if (!img) return
@@ -253,7 +281,6 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
     octx.drawImage(img, 0, 0)
     const imgData = octx.getImageData(0, 0, W, H)
 
-    // Estimate watermark pattern via high-pass average in tiles
     const tileSize = 64
     for (let ty = 0; ty < H; ty += tileSize) {
       for (let tx = 0; tx < W; tx += tileSize) {
@@ -264,7 +291,6 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
           sumR += imgData.data[i]; sumG += imgData.data[i + 1]; sumB += imgData.data[i + 2]
         }
         const avgR = sumR / cnt, avgG = sumG / cnt, avgB = sumB / cnt
-        // Compute local std dev to detect watermark-like patterns
         let stdR = 0
         for (let dy = 0; dy < th; dy++) for (let dx = 0; dx < tw; dx++) {
           const i = ((ty + dy) * W + (tx + dx)) * 4
@@ -272,7 +298,6 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
         }
         stdR /= cnt
         if (stdR < 30) {
-          // Low-variance region: soften toward local average (removes faint marks)
           for (let dy = 0; dy < th; dy++) for (let dx = 0; dx < tw; dx++) {
             const i = ((ty + dy) * W + (tx + dx)) * 4
             imgData.data[i] = Math.round(imgData.data[i] * 0.6 + avgR * 0.4)
@@ -285,7 +310,6 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
     octx.putImageData(imgData, 0, 0)
     const url = outputCanvas.toDataURL('image/jpeg', 0.95)
     setResultUrl(url)
-    // update canvas
     const canvas = canvasRef.current!
     const ri = new Image()
     ri.onload = () => { canvas.getContext('2d')!.drawImage(ri, 0, 0, canvas.width, canvas.height) }
@@ -367,16 +391,21 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
             </div>
           )}
 
-          <div className="relative rounded-xl overflow-hidden bg-surface border border-border checkered-bg">
-            <canvas
-              ref={canvasRef}
-              className="w-full block cursor-crosshair select-none"
-              onMouseDown={startDraw}
-              onMouseMove={onMouseMove}
-              onMouseUp={stopDraw}
-              onMouseLeave={stopDraw}
-            />
-            <canvas ref={maskCanvasRef} className="hidden" />
+          <div ref={pinch.viewportRef} className="relative rounded-xl overflow-hidden bg-surface border border-border checkered-bg">
+            <div style={pinch.wrapperStyle}>
+              <canvas
+                ref={canvasRef}
+                className="w-full block cursor-crosshair select-none"
+                style={{ touchAction: 'none' }}
+                onMouseDown={startDraw}
+                onMouseMove={onMouseMove}
+                onMouseUp={stopDraw}
+                onMouseLeave={stopDraw}
+                {...pinch.handlers}
+              />
+              <canvas ref={maskCanvasRef} className="hidden" />
+            </div>
+            <ZoomControls zoom={pinch.zoom} onZoomIn={() => pinch.setZoom(z => z + 0.25)} onZoomOut={() => pinch.setZoom(z => z - 0.25)} onReset={pinch.resetView} />
           </div>
 
           <div className="flex gap-2">
@@ -399,9 +428,12 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
             </p>
           </div>
 
-          <div className="relative rounded-xl overflow-hidden bg-surface border border-border checkered-bg">
-            <canvas ref={canvasRef} className="w-full block" />
-            <canvas ref={maskCanvasRef} className="hidden" />
+          <div ref={pinch.viewportRef} className="relative rounded-xl overflow-hidden bg-surface border border-border checkered-bg">
+            <div style={pinch.wrapperStyle}>
+              <canvas ref={canvasRef} className="w-full block" style={{ touchAction: 'none' }} {...pinch.handlers} />
+              <canvas ref={maskCanvasRef} className="hidden" />
+            </div>
+            <ZoomControls zoom={pinch.zoom} onZoomIn={() => pinch.setZoom(z => z + 0.25)} onZoomOut={() => pinch.setZoom(z => z - 0.25)} onReset={pinch.resetView} />
           </div>
 
           <div className="flex gap-2">

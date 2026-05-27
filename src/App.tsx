@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import {
   ZapIcon, Eraser, Layers, Sparkles, Upload,
   ChevronRight, X, ImageIcon, Sticker, UserCircle2, Scissors
@@ -13,6 +13,8 @@ import EnhancePanel from '@/components/EnhancePanel'
 import StickerPanel from '@/components/StickerPanel'
 import AvatarPanel from '@/components/AvatarPanel'
 import CutoutPanel from '@/components/CutoutPanel'
+import { usePinchZoom } from '@/hooks/usePinchZoom'
+import ZoomControls from '@/components/ZoomControls'
 import heroBanner from '@/assets/images/hero-banner.png'
 import samplePortrait from '@/assets/images/sample-portrait.png'
 
@@ -56,6 +58,8 @@ export default function App() {
   const [showLanding, setShowLanding] = useState(true)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_sidebarOpen, _setSidebarOpen] = useState(false)
+
+  const previewPinch = usePinchZoom()
 
   const handleImageLoad = (file: File, dataUrl: string) => {
     setImageFile(file)
@@ -254,15 +258,19 @@ export default function App() {
                 )}
               </div>
 
-              <div className="flex items-center justify-center bg-surface rounded-xl sm:rounded-2xl border border-border overflow-hidden checkered-bg"
+              <div ref={previewPinch.viewportRef} className="relative flex items-center justify-center bg-surface rounded-xl sm:rounded-2xl border border-border overflow-hidden checkered-bg"
                 style={{ minHeight: '160px', maxHeight: 'clamp(160px, 35vh, 320px)' }}
               >
-                <img
-                  src={imageDataUrl}
-                  alt="当前图片"
-                  className="max-w-full max-h-full object-contain"
-                  style={{ maxHeight: 'clamp(156px, 35vh - 4px, 316px)' }}
-                />
+                <div style={previewPinch.wrapperStyle}>
+                  <img
+                    src={imageDataUrl}
+                    alt="当前图片"
+                    className="max-w-full max-h-full object-contain"
+                    style={{ maxHeight: 'clamp(156px, 35vh - 4px, 316px)', touchAction: 'none' }}
+                    {...previewPinch.handlers}
+                  />
+                </div>
+                <ZoomControls zoom={previewPinch.zoom} onZoomIn={() => previewPinch.setZoom(z => z + 0.25)} onZoomOut={() => previewPinch.setZoom(z => z - 0.25)} onReset={previewPinch.resetView} />
               </div>
             </div>
           ) : (

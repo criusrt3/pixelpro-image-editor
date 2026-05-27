@@ -1,7 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Download, Loader2, FileImage, Layers, Brush, RotateCcw, Info, Eraser as EraserIcon, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { usePinchZoom } from '@/hooks/usePinchZoom'
+import ZoomControls from '@/components/ZoomControls'
 import bgNature from '@/assets/images/bg-nature.png'
 import bgCity from '@/assets/images/bg-city.png'
 
@@ -46,6 +48,22 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
   const imgRef = useRef<HTMLImageElement | null>(null)
   const isDrawing = useRef(false)
   const lastPos = useRef<{ x: number; y: number } | null>(null)
+
+  const pinch = usePinchZoom({
+    onSingleTouchStart: (cx, cy) => {
+      isDrawing.current = true
+      const pos = getPosFromClient(cx, cy)
+      lastPos.current = pos
+      paintMask(pos.x, pos.y, pos.x, pos.y)
+    },
+    onSingleTouchMove: (cx, cy) => {
+      if (!isDrawing.current || !lastPos.current) return
+      const pos = getPosFromClient(cx, cy)
+      paintMask(lastPos.current.x, lastPos.current.y, pos.x, pos.y)
+      lastPos.current = pos
+    },
+    onSingleTouchEnd: () => { isDrawing.current = false; lastPos.current = null },
+  })
 
   useEffect(() => {
     if (!imageDataUrl) return
@@ -146,24 +164,6 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
     lastPos.current = pos
   }
   const handleMouseUp = () => { isDrawing.current = false; lastPos.current = null }
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    e.preventDefault()
-    const t = e.touches[0]
-    isDrawing.current = true
-    const pos = getPosFromClient(t.clientX, t.clientY)
-    lastPos.current = pos
-    paintMask(pos.x, pos.y, pos.x, pos.y)
-  }
-  const handleTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault()
-    if (!isDrawing.current || !lastPos.current) return
-    const t = e.touches[0]
-    const pos = getPosFromClient(t.clientX, t.clientY)
-    paintMask(lastPos.current.x, lastPos.current.y, pos.x, pos.y)
-    lastPos.current = pos
-  }
-  const handleTouchEnd = () => { isDrawing.current = false; lastPos.current = null }
 
   const handleReset = () => {
     setResultUrl(null); setHasMask(false)
@@ -514,18 +514,20 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
               className="w-full h-2 appearance-none rounded-full cursor-pointer slider-thumb touch-manipulation"
               style={{ background: `linear-gradient(to right, hsl(262 83% 65%) ${((brushSize - 5) / 55) * 100}%, hsl(var(--border)) ${((brushSize - 5) / 55) * 100}%)` }} />
           </div>
-          <div className="relative rounded-xl overflow-hidden border border-border checkered-bg">
-            <canvas ref={canvasRef} className="w-full block cursor-crosshair select-none"
-              style={{ touchAction: 'none' }}
-              onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
-              onTouchStart={handleTouchStart} onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd} />
-            <canvas ref={maskCanvasRef} className="hidden" />
-            <div className="absolute bottom-2 left-2 flex gap-2 text-xs pointer-events-none">
-              <span className="bg-emerald-500/80 text-white px-2 py-0.5 rounded">绿=保留</span>
-              <span className="bg-red-500/80 text-white px-2 py-0.5 rounded">红=去除</span>
+          <div ref={pinch.viewportRef} className="relative rounded-xl overflow-hidden border border-border checkered-bg">
+            <div style={pinch.wrapperStyle}>
+              <canvas ref={canvasRef} className="w-full block cursor-crosshair select-none"
+                style={{ touchAction: 'none' }}
+                onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
+                {...pinch.handlers} />
+              <canvas ref={maskCanvasRef} className="hidden" />
+              <div className="absolute bottom-2 left-2 flex gap-2 text-xs pointer-events-none">
+                <span className="bg-emerald-500/80 text-white px-2 py-0.5 rounded">绿=保留</span>
+                <span className="bg-red-500/80 text-white px-2 py-0.5 rounded">红=去除</span>
+              </div>
             </div>
+            <ZoomControls zoom={pinch.zoom} onZoomIn={() => pinch.setZoom(z => z + 0.25)} onZoomOut={() => pinch.setZoom(z => z - 0.25)} onReset={pinch.resetView} />
           </div>
         </div>
       )}

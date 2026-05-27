@@ -1,7 +1,9 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Download, FileImage, Plus, Trash2, Type, Smile, AlignLeft, AlignCenter, AlignRight, Bold, Italic, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { usePinchZoom } from '@/hooks/usePinchZoom'
+import ZoomControls from '@/components/ZoomControls'
 
 interface StickerPanelProps {
   imageDataUrl: string | null
@@ -48,7 +50,6 @@ const PRESET_TEXTS = [
 
 export default function StickerPanel({ imageDataUrl }: StickerPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement | null>(null)
   const [items, setItems] = useState<TextItem[]>([])
   const [selected, setSelected] = useState<string | null>(null)
@@ -64,6 +65,42 @@ export default function StickerPanel({ imageDataUrl }: StickerPanelProps) {
   const [_canvasScale, setCanvasScale] = useState(1)
   // drag state
   const dragRef = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null)
+
+  const pinch = usePinchZoom({
+    onSingleTouchStart: (cx, cy) => {
+      const canvas = canvasRef.current!
+      const rect = canvas.getBoundingClientRect()
+      const mx = (cx - rect.left) * (canvas.width / rect.width)
+      const my = (cy - rect.top) * (canvas.height / rect.height)
+      let hit: TextItem | null = null
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i]
+        const dx = mx - it.x, dy = my - it.y
+        const hitRadius = it.fontSize * it.content.length * 0.35
+        if (Math.abs(dx) < hitRadius && Math.abs(dy) < it.fontSize) {
+          hit = it; break
+        }
+      }
+      if (hit) {
+        setSelected(hit.id)
+        dragRef.current = { id: hit.id, startX: mx, startY: my, origX: hit.x, origY: hit.y }
+      } else {
+        setSelected(null)
+      }
+    },
+    onSingleTouchMove: (cx, cy) => {
+      if (!dragRef.current) return
+      const canvas = canvasRef.current!
+      const rect = canvas.getBoundingClientRect()
+      const mx = (cx - rect.left) * (canvas.width / rect.width)
+      const my = (cy - rect.top) * (canvas.height / rect.height)
+      const dx = mx - dragRef.current.startX
+      const dy = my - dragRef.current.startY
+      const { id, origX, origY } = dragRef.current
+      setItems(prev => prev.map(it => it.id === id ? { ...it, x: origX + dx, y: origY + dy } : it))
+    },
+    onSingleTouchEnd: () => { dragRef.current = null },
+  })
 
   useEffect(() => {
     if (!imageDataUrl) return
@@ -428,15 +465,19 @@ export default function StickerPanel({ imageDataUrl }: StickerPanelProps) {
       )}
 
       {/* 画布 */}
-      <div ref={containerRef} className="relative rounded-xl overflow-hidden bg-surface border border-border checkered-bg">
-        <canvas
-          ref={canvasRef}
-          className="w-full block cursor-move select-none"
-          onMouseDown={onCanvasMouseDown}
-          onMouseMove={onCanvasMouseMove}
-          onMouseUp={onCanvasMouseUp}
-          onMouseLeave={onCanvasMouseUp}
-        />
+      <div ref={pinch.viewportRef} className="relative rounded-xl overflow-hidden bg-surface border border-border checkered-bg">
+        <div style={pinch.wrapperStyle}>
+          <canvas
+            ref={canvasRef}
+            className="w-full block cursor-move select-none"
+            style={{ touchAction: 'none' }}
+            onMouseDown={onCanvasMouseDown}
+            onMouseMove={onCanvasMouseMove}
+            onMouseUp={onCanvasMouseUp}
+            onMouseLeave={onCanvasMouseUp}
+            {...pinch.handlers}
+          />
+        </div>
         {items.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <p className="text-xs text-muted-foreground bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm">
@@ -444,6 +485,7 @@ export default function StickerPanel({ imageDataUrl }: StickerPanelProps) {
             </p>
           </div>
         )}
+        <ZoomControls zoom={pinch.zoom} onZoomIn={() => pinch.setZoom(z => z + 0.25)} onZoomOut={() => pinch.setZoom(z => z - 0.25)} onReset={pinch.resetView} />
       </div>
 
       {/* 图层列表 */}

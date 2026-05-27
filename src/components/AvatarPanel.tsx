@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Download, FileImage, RefreshCw, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { usePinchZoom } from '@/hooks/usePinchZoom'
 
 interface AvatarPanelProps {
   imageDataUrl: string | null
@@ -513,6 +514,24 @@ export default function AvatarPanel({ imageDataUrl }: AvatarPanelProps) {
   }
   const handleCanvasMouseUp = () => { setIsDragging(false) }
 
+  // Pinch zoom for avatar canvas — syncs to internal zoom/pan state
+  const pinch = usePinchZoom({
+    minZoom: 0.5,
+    maxZoom: 2,
+    initialZoom: zoom / 100,
+    onSingleTouchStart: (cx, cy) => {
+      setIsDragging(true)
+      dragStart.current = { mx: cx, my: cy, px: panX, py: panY }
+    },
+    onSingleTouchMove: (cx, cy) => {
+      if (!isDragging || !dragStart.current) return
+      setPanX(dragStart.current.px + cx - dragStart.current.mx)
+      setPanY(dragStart.current.py + cy - dragStart.current.my)
+    },
+    onSingleTouchEnd: () => { setIsDragging(false) },
+    onZoomChange: (newZoom) => { setZoom(Math.round(newZoom * 100)) },
+  })
+
   const handleDownload = () => {
     const canvas = canvasRef.current
     const img = imgRef.current
@@ -587,10 +606,12 @@ export default function AvatarPanel({ imageDataUrl }: AvatarPanelProps) {
           <canvas
             ref={canvasRef}
             className={cn('block', isDragging ? 'cursor-grabbing' : 'cursor-grab')}
+            style={{ touchAction: 'none' }}
             onMouseDown={handleCanvasMouseDown}
             onMouseMove={handleCanvasMouseMove}
             onMouseUp={handleCanvasMouseUp}
             onMouseLeave={handleCanvasMouseUp}
+            {...pinch.handlers}
           />
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
