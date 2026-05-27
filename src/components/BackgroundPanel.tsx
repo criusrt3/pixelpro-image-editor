@@ -181,13 +181,21 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
     curCustomBgUrl: string | null,
   ) => {
     const bg = PRESET_BACKGROUNDS.find(b => b.id === curSelectedBg)
-    if (bg?.url || curCustomBgUrl) {
+    const imgUrl = bg?.url || curCustomBgUrl
+    if (imgUrl) {
       const bgImg = new Image()
-      bgImg.crossOrigin = 'anonymous'
-      bgImg.src = bg?.url || curCustomBgUrl!
-      await new Promise(r => { bgImg.onload = r; bgImg.onerror = r })
-      ctx.drawImage(bgImg, 0, 0, w, h)
-    } else if (bg?.gradient) {
+      // Only set crossOrigin for external URLs (data URLs and same-origin don't need it)
+      if (imgUrl.startsWith('http')) bgImg.crossOrigin = 'anonymous'
+      bgImg.src = imgUrl
+      await new Promise<void>(r => { bgImg.onload = () => r(); bgImg.onerror = () => r() })
+      // Only draw if image actually loaded
+      if (bgImg.naturalWidth > 0) {
+        ctx.drawImage(bgImg, 0, 0, w, h)
+        return
+      }
+      // Image failed to load — fall through to gradient/color fallback
+    }
+    if (bg?.gradient) {
       const stops = bg.gradient.match(/#[0-9a-fA-F]{6}/g) || ['#667eea', '#764ba2']
       const grad = ctx.createLinearGradient(0, 0, w, h)
       grad.addColorStop(0, stops[0])
@@ -215,6 +223,7 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
     const curBgTab = bgTab
     const curCustomColor = customColor
     const curCustomBgUrl = customBgUrl
+    const curTolerance = tolerance
     setIsProcessing(true)
     await new Promise(r => setTimeout(r, 800))
 
@@ -263,7 +272,7 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
       if (visited[idx]) continue
       visited[idx] = 1
       const pi = idx * 4
-      if (colorDist(pi) <= tolerance) {
+      if (colorDist(pi) <= curTolerance) {
         alpha[idx] = 0
         const x = idx % W, y = Math.floor(idx / W)
         if (x > 0) queue.push(idx - 1)
