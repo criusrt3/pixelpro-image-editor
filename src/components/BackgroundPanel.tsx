@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Download, Loader2, FileImage, Layers, Palette, Brush, RotateCcw, Info, Eraser as EraserIcon, Wand2 } from 'lucide-react'
+import React, { useState, useRef, useEffect } from 'react'
+import { Download, Loader2, FileImage, Layers, Brush, RotateCcw, Info, Eraser as EraserIcon, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import bgNature from '@/assets/images/bg-nature.png'
@@ -78,14 +78,16 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
     setHasMask(false)
   }
 
-  const getPos = (e: React.MouseEvent) => {
+  const getPosFromClient = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current!
     const rect = canvas.getBoundingClientRect()
     return {
-      x: (e.clientX - rect.left) * (canvas.width / rect.width),
-      y: (e.clientY - rect.top) * (canvas.height / rect.height)
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height)
     }
   }
+
+  const getPos = (e: React.MouseEvent) => getPosFromClient(e.clientX, e.clientY)
 
   const paintMask = (x1: number, y1: number, x2: number, y2: number) => {
     const maskCanvas = maskCanvasRef.current
@@ -145,6 +147,24 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
   }
   const handleMouseUp = () => { isDrawing.current = false; lastPos.current = null }
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault()
+    const t = e.touches[0]
+    isDrawing.current = true
+    const pos = getPosFromClient(t.clientX, t.clientY)
+    lastPos.current = pos
+    paintMask(pos.x, pos.y, pos.x, pos.y)
+  }
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault()
+    if (!isDrawing.current || !lastPos.current) return
+    const t = e.touches[0]
+    const pos = getPosFromClient(t.clientX, t.clientY)
+    paintMask(lastPos.current.x, lastPos.current.y, pos.x, pos.y)
+    lastPos.current = pos
+  }
+  const handleTouchEnd = () => { isDrawing.current = false; lastPos.current = null }
+
   const handleReset = () => {
     setResultUrl(null); setHasMask(false)
     if (imgRef.current) initManualCanvas(imgRef.current)
@@ -190,6 +210,11 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
   const handleAutoRemove = async () => {
     const img = imgRef.current
     if (!img) return
+    // Snapshot state values before any await to avoid stale closure
+    const curSelectedBg = selectedBg
+    const curBgTab = bgTab
+    const curCustomColor = customColor
+    const curCustomBgUrl = customBgUrl
     setIsProcessing(true)
     await new Promise(r => setTimeout(r, 800))
 
@@ -268,7 +293,7 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
     const outCanvas = document.createElement('canvas')
     outCanvas.width = W; outCanvas.height = H
     const octx = outCanvas.getContext('2d')!
-    await drawBg(octx, W, H, selectedBg, bgTab, customColor, customBgUrl)
+    await drawBg(octx, W, H, curSelectedBg, curBgTab, curCustomColor, curCustomBgUrl)
     const bgData = octx.getImageData(0, 0, W, H)
     const outData = octx.createImageData(W, H)
     for (let i = 0; i < W * H; i++) {
@@ -289,6 +314,11 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
     const img = imgRef.current
     const maskCanvas = maskCanvasRef.current
     if (!img || !maskCanvas) return
+    // Snapshot state values before any await to avoid stale closure
+    const curSelectedBg = selectedBg
+    const curBgTab = bgTab
+    const curCustomColor = customColor
+    const curCustomBgUrl = customBgUrl
     setIsProcessing(true)
     await new Promise(r => setTimeout(r, 600))
 
@@ -377,7 +407,7 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
     const outCanvas = document.createElement('canvas')
     outCanvas.width = W; outCanvas.height = H
     const octx = outCanvas.getContext('2d')!
-    await drawBg(octx, W, H, selectedBg, bgTab, customColor, customBgUrl)
+    await drawBg(octx, W, H, curSelectedBg, curBgTab, curCustomColor, curCustomBgUrl)
     const bgData = octx.getImageData(0, 0, W, H)
     const outData = octx.createImageData(W, H)
     for (let i = 0; i < W * H; i++) {
@@ -409,12 +439,12 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
       {/* 抠图模式切换 */}
       <div className="flex gap-1.5 p-1 bg-surface rounded-lg">
         <button onClick={() => { setMode('auto'); setResultUrl(null) }}
-          className={cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all',
+          className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 sm:py-2 rounded-md text-xs font-medium transition-all min-h-[40px] touch-manipulation active:scale-95',
             mode === 'auto' ? 'bg-accent text-accent-foreground border border-brand/30 shadow-glow-sm' : 'text-muted-foreground hover:text-foreground')}>
           <Wand2 className="w-3.5 h-3.5" />自动抠图
         </button>
         <button onClick={() => { setMode('manual'); setResultUrl(null) }}
-          className={cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all',
+          className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 sm:py-2 rounded-md text-xs font-medium transition-all min-h-[40px] touch-manipulation active:scale-95',
             mode === 'manual' ? 'bg-accent text-accent-foreground border border-brand/30 shadow-glow-sm' : 'text-muted-foreground hover:text-foreground')}>
           <Brush className="w-3.5 h-3.5" />手动涂抹
         </button>
@@ -439,7 +469,7 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
           </div>
           <input type="range" min="5" max="100" value={tolerance}
             onChange={e => setTolerance(Number(e.target.value))}
-            className="w-full h-1.5 appearance-none rounded-full cursor-pointer slider-thumb"
+            className="w-full h-2 appearance-none rounded-full cursor-pointer slider-thumb touch-manipulation"
             style={{ background: `linear-gradient(to right, hsl(262 83% 65%) ${((tolerance - 5) / 95) * 100}%, hsl(var(--border)) ${((tolerance - 5) / 95) * 100}%)` }} />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>精细</span><span>宽松</span>
@@ -472,13 +502,16 @@ export default function BackgroundPanel({ imageDataUrl }: BackgroundPanelProps) 
             </div>
             <input type="range" min="5" max="60" value={brushSize}
               onChange={e => setBrushSize(Number(e.target.value))}
-              className="w-full h-1.5 appearance-none rounded-full cursor-pointer slider-thumb"
+              className="w-full h-2 appearance-none rounded-full cursor-pointer slider-thumb touch-manipulation"
               style={{ background: `linear-gradient(to right, hsl(262 83% 65%) ${((brushSize - 5) / 55) * 100}%, hsl(var(--border)) ${((brushSize - 5) / 55) * 100}%)` }} />
           </div>
           <div className="relative rounded-xl overflow-hidden border border-border checkered-bg">
             <canvas ref={canvasRef} className="w-full block cursor-crosshair select-none"
+              style={{ touchAction: 'none' }}
               onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} />
+              onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
+              onTouchStart={handleTouchStart} onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd} />
             <canvas ref={maskCanvasRef} className="hidden" />
             <div className="absolute bottom-2 left-2 flex gap-2 text-xs pointer-events-none">
               <span className="bg-emerald-500/80 text-white px-2 py-0.5 rounded">绿=保留</span>

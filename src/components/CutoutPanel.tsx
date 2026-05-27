@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Download, FileImage, Loader2, Info, Brush, Eraser as EraserIcon,
-  RotateCcw, Wand2, Layers, Upload, ZoomIn, ZoomOut, Move, Trash2,
-  Plus, Minus, FlipHorizontal, RotateCcw as RotateIcon
+  RotateCcw, Wand2, Layers, Upload, Trash2,
+  Plus, FlipHorizontal, RotateCcw as RotateIcon
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -47,12 +47,14 @@ export default function CutoutPanel({ imageDataUrl }: CutoutPanelProps) {
   const lastPos = useRef<{ x: number; y: number } | null>(null)
 
   // ── Compose state ───────────────────────────────────────────
-  const [bgDataUrl, setBgDataUrl] = useState<string | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_bgDataUrl, setBgDataUrl] = useState<string | null>(null)
   const [bgColor, setBgColor] = useState('#1a1a2e')
   const [bgType, setBgType] = useState<'upload' | 'color' | 'transparent'>('color')
   const [items, setItems] = useState<PlacedItem[]>([])
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
-  const [composeZoom, setComposeZoom] = useState(100)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_composeZoom, _setComposeZoom] = useState(100)
   const composeCanvasRef = useRef<HTMLCanvasElement>(null)
   const composeBgRef = useRef<HTMLImageElement | null>(null)
   const dragRef = useRef<{ id: string; startMx: number; startMy: number; origX: number; origY: number } | null>(null)
@@ -134,7 +136,6 @@ export default function CutoutPanel({ imageDataUrl }: CutoutPanelProps) {
       ctx.translate(item.x, item.y)
       ctx.rotate((item.rotation * Math.PI) / 180)
       ctx.scale(item.flipX ? -item.scale : item.scale, item.scale)
-      const natW = 200, natH = 200 // placeholder, actual drawn from img
       ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2, img.naturalWidth, img.naturalHeight)
       ctx.restore()
 
@@ -512,12 +513,12 @@ export default function CutoutPanel({ imageDataUrl }: CutoutPanelProps) {
           {/* Mode toggle */}
           <div className="flex gap-1 p-1 bg-surface rounded-lg">
             <button onClick={()=>{setCutoutMode('auto');handleReset()}}
-              className={cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all',
+              className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 sm:py-2 rounded-md text-xs font-medium transition-all min-h-[40px] touch-manipulation active:scale-95',
                 cutoutMode==='auto'?'bg-accent text-accent-foreground border border-brand/30 shadow-glow-sm':'text-muted-foreground hover:text-foreground')}>
               <Wand2 className="w-3.5 h-3.5"/>自动抠图
             </button>
             <button onClick={()=>{setCutoutMode('manual');handleReset()}}
-              className={cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all',
+              className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 sm:py-2 rounded-md text-xs font-medium transition-all min-h-[40px] touch-manipulation active:scale-95',
                 cutoutMode==='manual'?'bg-accent text-accent-foreground border border-brand/30 shadow-glow-sm':'text-muted-foreground hover:text-foreground')}>
               <Brush className="w-3.5 h-3.5"/>手动涂抹
             </button>
@@ -542,7 +543,7 @@ export default function CutoutPanel({ imageDataUrl }: CutoutPanelProps) {
               </div>
               <input type="range" min="5" max="120" value={tolerance}
                 onChange={e=>setTolerance(Number(e.target.value))}
-                className="w-full h-1.5 appearance-none rounded-full cursor-pointer slider-thumb"
+                className="w-full h-2 appearance-none rounded-full cursor-pointer slider-thumb touch-manipulation"
                 style={{background:`linear-gradient(to right,hsl(262 83% 65%) ${((tolerance-5)/115)*100}%,hsl(var(--border)) ${((tolerance-5)/115)*100}%)`}}/>
               <div className="flex justify-between text-xs text-muted-foreground mt-1"><span>精细</span><span>宽松</span></div>
             </div>
@@ -553,12 +554,12 @@ export default function CutoutPanel({ imageDataUrl }: CutoutPanelProps) {
             <div className="space-y-3">
               <div className="flex gap-2">
                 <button onClick={()=>setManualTool('keep')}
-                  className={cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium border transition-all',
+                  className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 sm:py-2 rounded-lg text-xs font-medium border transition-all min-h-[40px] touch-manipulation active:scale-95',
                     manualTool==='keep'?'bg-emerald-500/20 border-emerald-500/50 text-emerald-400':'bg-surface border-border text-muted-foreground hover:text-foreground')}>
                   <Brush className="w-3.5 h-3.5"/>保留主体
                 </button>
                 <button onClick={()=>setManualTool('erase')}
-                  className={cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium border transition-all',
+                  className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 sm:py-2 rounded-lg text-xs font-medium border transition-all min-h-[40px] touch-manipulation active:scale-95',
                     manualTool==='erase'?'bg-red-500/20 border-red-500/50 text-red-400':'bg-surface border-border text-muted-foreground hover:text-foreground')}>
                   <EraserIcon className="w-3.5 h-3.5"/>去除背景
                 </button>
@@ -567,7 +568,7 @@ export default function CutoutPanel({ imageDataUrl }: CutoutPanelProps) {
               <div>
                 <div className="flex justify-between mb-1.5"><span className="text-xs text-muted-foreground">画笔大小</span><span className="text-xs font-semibold text-brand">{brushSize}px</span></div>
                 <input type="range" min="5" max="60" value={brushSize} onChange={e=>setBrushSize(Number(e.target.value))}
-                  className="w-full h-1.5 appearance-none rounded-full cursor-pointer slider-thumb"
+                  className="w-full h-2 appearance-none rounded-full cursor-pointer slider-thumb touch-manipulation"
                   style={{background:`linear-gradient(to right,hsl(262 83% 65%) ${((brushSize-5)/55)*100}%,hsl(var(--border)) ${((brushSize-5)/55)*100}%)`}}/>
               </div>
             </div>
@@ -710,7 +711,7 @@ export default function CutoutPanel({ imageDataUrl }: CutoutPanelProps) {
                   <span className="text-xs font-semibold text-brand">{Math.round(selItem.scale*100)}%</span></div>
                 <input type="range" min="10" max="200" value={Math.round(selItem.scale*100)}
                   onChange={e=>updateItem({scale:Number(e.target.value)/100})}
-                  className="w-full h-1.5 appearance-none rounded-full cursor-pointer slider-thumb"
+                  className="w-full h-2 appearance-none rounded-full cursor-pointer slider-thumb touch-manipulation"
                   style={{background:`linear-gradient(to right,hsl(262 83% 65%) ${(selItem.scale*100-10)/190*100}%,hsl(var(--border)) ${(selItem.scale*100-10)/190*100}%)`}}/>
               </div>
               <div>
@@ -718,7 +719,7 @@ export default function CutoutPanel({ imageDataUrl }: CutoutPanelProps) {
                   <span className="text-xs font-semibold text-brand">{selItem.rotation}°</span></div>
                 <input type="range" min="-180" max="180" value={selItem.rotation}
                   onChange={e=>updateItem({rotation:Number(e.target.value)})}
-                  className="w-full h-1.5 appearance-none rounded-full cursor-pointer slider-thumb"
+                  className="w-full h-2 appearance-none rounded-full cursor-pointer slider-thumb touch-manipulation"
                   style={{background:`linear-gradient(to right,hsl(var(--border)) 0%,hsl(262 83% 65%) 50%,hsl(var(--border)) 100%)`}}/>
               </div>
               <div className="flex gap-2">

@@ -60,7 +60,8 @@ export default function StickerPanel({ imageDataUrl }: StickerPanelProps) {
   const [fontWeight, setFontWeight] = useState<'normal' | 'bold'>('bold')
   const [fontStyle, setFontStyle] = useState<'normal' | 'italic'>('normal')
   const [fontFamily, setFontFamily] = useState('Inter')
-  const [canvasScale, setCanvasScale] = useState(1)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_canvasScale, setCanvasScale] = useState(1)
   // drag state
   const dragRef = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null)
 
@@ -274,10 +275,10 @@ export default function StickerPanel({ imageDataUrl }: StickerPanelProps) {
     <div className="space-y-4">
       {/* 功能 Tab */}
       <div className="flex gap-1.5 p-1 bg-surface rounded-lg">
-        <button onClick={() => setActiveTab('text')} className={cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all', activeTab === 'text' ? 'bg-accent text-accent-foreground border border-brand/30 shadow-glow-sm' : 'text-muted-foreground hover:text-foreground')}>
+        <button onClick={() => setActiveTab('text')} className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 sm:py-2 rounded-md text-xs font-medium transition-all min-h-[40px] touch-manipulation active:scale-95', activeTab === 'text' ? 'bg-accent text-accent-foreground border border-brand/30 shadow-glow-sm' : 'text-muted-foreground hover:text-foreground')}>
           <Type className="w-3.5 h-3.5" />添加文字
         </button>
-        <button onClick={() => setActiveTab('emoji')} className={cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all', activeTab === 'emoji' ? 'bg-accent text-accent-foreground border border-brand/30 shadow-glow-sm' : 'text-muted-foreground hover:text-foreground')}>
+        <button onClick={() => setActiveTab('emoji')} className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 sm:py-2 rounded-md text-xs font-medium transition-all min-h-[40px] touch-manipulation active:scale-95', activeTab === 'emoji' ? 'bg-accent text-accent-foreground border border-brand/30 shadow-glow-sm' : 'text-muted-foreground hover:text-foreground')}>
           <Smile className="w-3.5 h-3.5" />表情贴纸
         </button>
       </div>
@@ -330,7 +331,7 @@ export default function StickerPanel({ imageDataUrl }: StickerPanelProps) {
                 </div>
                 <input type="range" min="12" max="120" value={selectedItem ? selectedItem.fontSize : fontSize}
                   onChange={e => { const v = Number(e.target.value); setFontSize(v); if (selected) updateSelected({ fontSize: v }) }}
-                  className="w-full h-1.5 appearance-none rounded-full cursor-pointer slider-thumb"
+                  className="w-full h-2 appearance-none rounded-full cursor-pointer slider-thumb touch-manipulation"
                   style={{ background: `linear-gradient(to right, hsl(262 83% 65%) ${((( selectedItem?.fontSize || fontSize) - 12) / 108) * 100}%, hsl(var(--border)) ${(((selectedItem?.fontSize || fontSize) - 12) / 108) * 100}%)` }} />
               </div>
             </div>
@@ -382,10 +383,10 @@ export default function StickerPanel({ imageDataUrl }: StickerPanelProps) {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-8 gap-1">
+          <div className="grid grid-cols-8 gap-0.5 sm:gap-1">
             {EMOJI_GROUPS[activeEmojiGroup].emojis.map(emoji => (
               <button key={emoji} onClick={() => addEmoji(emoji)}
-                className="text-2xl h-10 flex items-center justify-center rounded-lg hover:bg-surface-raised transition-all hover:scale-125 active:scale-95">
+                className="text-xl sm:text-2xl h-9 sm:h-10 flex items-center justify-center rounded-lg hover:bg-surface-raised transition-all hover:scale-125 active:scale-95 touch-manipulation">
                 {emoji}
               </button>
             ))}
@@ -397,7 +398,7 @@ export default function StickerPanel({ imageDataUrl }: StickerPanelProps) {
             </div>
             <input type="range" min="20" max="120" value={selectedItem?.fontSize || 48}
               onChange={e => updateSelected({ fontSize: Number(e.target.value) })}
-              className="w-full h-1.5 appearance-none rounded-full cursor-pointer slider-thumb"
+              className="w-full h-2 appearance-none rounded-full cursor-pointer slider-thumb touch-manipulation"
               style={{ background: `linear-gradient(to right, hsl(262 83% 65%) ${(((selectedItem?.fontSize || 48) - 20) / 100) * 100}%, hsl(var(--border)) ${(((selectedItem?.fontSize || 48) - 20) / 100) * 100}%)` }} />
           </div>
         </div>
@@ -416,7 +417,7 @@ export default function StickerPanel({ imageDataUrl }: StickerPanelProps) {
             <span className="text-xs text-muted-foreground flex-shrink-0">旋转</span>
             <input type="range" min="-180" max="180" value={selectedItem.rotation}
               onChange={e => updateSelected({ rotation: Number(e.target.value) })}
-              className="flex-1 h-1.5 appearance-none rounded-full cursor-pointer slider-thumb"
+              className="flex-1 h-2 appearance-none rounded-full cursor-pointer slider-thumb touch-manipulation"
               style={{ background: `linear-gradient(to right, hsl(var(--border)) 0%, hsl(262 83% 65%) 50%, hsl(var(--border)) 100%)` }} />
             <span className="text-xs font-semibold text-brand w-10 text-right">{selectedItem.rotation}°</span>
             <Button variant="ghost" size="icon-sm" onClick={() => updateSelected({ rotation: 0 })}>

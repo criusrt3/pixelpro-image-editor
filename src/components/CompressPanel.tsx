@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Download, RotateCcw, ZapIcon, FileImage, Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import { Download, ZapIcon, FileImage, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface CompressPanelProps {
@@ -89,13 +89,13 @@ export default function CompressPanel({ imageFile, imageDataUrl }: CompressPanel
     <div className="space-y-5">
       {/* 格式选择 */}
       <div>
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 block">输出格式</label>
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 sm:mb-3 block">输出格式</label>
         <div className="flex gap-2">
           {(['jpeg', 'png', 'webp'] as const).map(f => (
             <button
               key={f}
               onClick={() => setFormat(f)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all duration-200 ${
+              className={`flex-1 py-2.5 sm:py-2 rounded-lg text-sm font-medium border transition-all duration-200 min-h-[44px] sm:min-h-0 touch-manipulation active:scale-95 ${
                 format === f
                   ? 'bg-accent border-brand/50 text-accent-foreground shadow-glow-sm'
                   : 'bg-surface border-border text-muted-foreground hover:text-foreground hover:border-brand/30'
@@ -109,7 +109,7 @@ export default function CompressPanel({ imageFile, imageDataUrl }: CompressPanel
 
       {/* 压缩质量 */}
       <div>
-        <div className="flex justify-between items-center mb-3">
+        <div className="flex justify-between items-center mb-2 sm:mb-3">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">压缩质量</label>
           <span className="text-sm font-semibold text-brand">{quality}%</span>
         </div>
@@ -120,7 +120,7 @@ export default function CompressPanel({ imageFile, imageDataUrl }: CompressPanel
           step="5"
           value={quality}
           onChange={e => setQuality(Number(e.target.value))}
-          className="w-full h-1.5 appearance-none bg-border rounded-full cursor-pointer slider-thumb"
+          className="w-full h-2 appearance-none bg-border rounded-full cursor-pointer slider-thumb touch-manipulation"
           style={{
             background: `linear-gradient(to right, hsl(262 83% 65%) ${quality}%, hsl(var(--border)) ${quality}%)`
           }}
@@ -133,7 +133,7 @@ export default function CompressPanel({ imageFile, imageDataUrl }: CompressPanel
 
       {/* 最大宽度 */}
       <div>
-        <div className="flex justify-between items-center mb-3">
+        <div className="flex justify-between items-center mb-2 sm:mb-3">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">最大宽度</label>
           <span className="text-sm font-semibold text-brand">{maxWidth}px</span>
         </div>
@@ -144,7 +144,7 @@ export default function CompressPanel({ imageFile, imageDataUrl }: CompressPanel
           step="100"
           value={maxWidth}
           onChange={e => setMaxWidth(Number(e.target.value))}
-          className="w-full h-1.5 appearance-none bg-border rounded-full cursor-pointer slider-thumb"
+          className="w-full h-2 appearance-none bg-border rounded-full cursor-pointer slider-thumb touch-manipulation"
           style={{
             background: `linear-gradient(to right, hsl(262 83% 65%) ${((maxWidth - 400) / 3600) * 100}%, hsl(var(--border)) ${((maxWidth - 400) / 3600) * 100}%)`
           }}
@@ -175,18 +175,18 @@ export default function CompressPanel({ imageFile, imageDataUrl }: CompressPanel
             <div className="w-2 h-2 rounded-full bg-green-400" />
             <span className="text-sm font-medium text-foreground">压缩完成</span>
           </div>
-          <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="grid grid-cols-3 gap-2 text-center">
             <div className="bg-surface-raised rounded-lg p-2">
-              <p className="text-xs text-muted-foreground mb-1">原始大小</p>
-              <p className="text-sm font-semibold text-foreground">{formatBytes(result.originalSize)}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">原始大小</p>
+              <p className="text-xs sm:text-sm font-semibold text-foreground">{formatBytes(result.originalSize)}</p>
             </div>
             <div className="bg-surface-raised rounded-lg p-2">
-              <p className="text-xs text-muted-foreground mb-1">压缩后</p>
-              <p className="text-sm font-semibold text-foreground">{formatBytes(result.compressedSize)}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">压缩后</p>
+              <p className="text-xs sm:text-sm font-semibold text-foreground">{formatBytes(result.compressedSize)}</p>
             </div>
             <div className="bg-accent rounded-lg p-2">
-              <p className="text-xs text-muted-foreground mb-1">节省空间</p>
-              <p className="text-sm font-semibold text-accent-foreground">{result.ratio > 0 ? `-${result.ratio}%` : '优化'}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">节省空间</p>
+              <p className="text-xs sm:text-sm font-semibold text-accent-foreground">{result.ratio > 0 ? `-${result.ratio}%` : '优化'}</p>
             </div>
           </div>
           <Button variant="secondary" className="w-full" onClick={handleDownload}>

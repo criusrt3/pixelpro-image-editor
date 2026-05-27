@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { Download, Loader2, FileImage, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -129,13 +129,13 @@ export default function EnhancePanel({ imageDataUrl }: EnhancePanelProps) {
     <div className="space-y-5">
       {/* 滤镜选择 */}
       <div>
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 block">滤镜效果</label>
-        <div className="grid grid-cols-4 gap-2">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 sm:mb-3 block">滤镜效果</label>
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {FILTERS.map(filter => (
             <button
               key={filter.id}
               onClick={() => setActiveFilter(filter.id)}
-              className={`relative group rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+              className={`relative group rounded-lg overflow-hidden border-2 transition-all duration-200 touch-manipulation active:scale-95 ${
                 activeFilter === filter.id ? 'border-brand shadow-glow-sm' : 'border-border hover:border-brand/40'
               }`}
             >
@@ -147,7 +147,7 @@ export default function EnhancePanel({ imageDataUrl }: EnhancePanelProps) {
                   style={{ filter: filter.css || 'none' }}
                 />
               </div>
-              <div className={`absolute inset-x-0 bottom-0 py-1 text-center text-xs font-medium transition-colors ${
+              <div className={`absolute inset-x-0 bottom-0 py-0.5 sm:py-1 text-center text-[10px] sm:text-xs font-medium transition-colors ${
                 activeFilter === filter.id ? 'bg-brand text-white' : 'bg-black/50 text-white'
               }`}>
                 {filter.label}
@@ -172,13 +172,13 @@ export default function EnhancePanel({ imageDataUrl }: EnhancePanelProps) {
       </div>
 
       {/* 调节滑块 */}
-      <div className="space-y-3">
-        {SLIDERS.map(({ key, label, min, max, default: def }) => {
+      <div className="space-y-3 sm:space-y-3">
+        {SLIDERS.map(({ key, label, min, max, default: _def }) => {
           const val = adj[key as keyof Adjustments]
           const pct = ((val - min) / (max - min)) * 100
           return (
             <div key={key}>
-              <div className="flex justify-between items-center mb-2">
+              <div className="flex justify-between items-center mb-1.5 sm:mb-2">
                 <label className="text-xs text-muted-foreground">{label}</label>
                 <span className="text-xs font-semibold text-brand">
                   {key === 'brightness' || key === 'contrast' || key === 'saturation' ? `${val}%` : val}
@@ -187,7 +187,7 @@ export default function EnhancePanel({ imageDataUrl }: EnhancePanelProps) {
               <input
                 type="range" min={min} max={max} value={val}
                 onChange={e => setAdj(prev => ({ ...prev, [key]: Number(e.target.value) }))}
-                className="w-full h-1.5 appearance-none rounded-full cursor-pointer slider-thumb"
+                className="w-full h-2 appearance-none rounded-full cursor-pointer slider-thumb touch-manipulation"
                 style={{ background: `linear-gradient(to right, hsl(262 83% 65%) ${pct}%, hsl(var(--border)) ${pct}%)` }}
               />
             </div>

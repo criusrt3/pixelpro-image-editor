@@ -69,6 +69,9 @@
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* 防止 iOS 双击缩放，但保留用户手动缩放能力 */
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -77,6 +80,24 @@
       radial-gradient(ellipse 80% 50% at 50% -20%, hsl(262 83% 65% / 0.08), transparent),
       radial-gradient(ellipse 60% 40% at 80% 60%, hsl(210 100% 65% / 0.04), transparent);
     min-height: 100vh;
+    /* 防止移动端水平溢出 */
+    overflow-x: hidden;
+  }
+
+  /* 防止 iOS 输入框聚焦时页面自动缩放 (字体需 >= 16px) */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
+
+  /* range input 在移动端保持最小触摸高度 */
+  input[type="range"] {
+    touch-action: pan-y;
+    cursor: pointer;
   }
 
   ::-webkit-scrollbar {
@@ -165,8 +186,8 @@
 
   .slider-thumb::-webkit-slider-thumb {
     appearance: none;
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: var(--gradient-brand);
     cursor: pointer;
@@ -174,8 +195,8 @@
   }
 
   .slider-thumb::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: var(--gradient-brand);
     cursor: pointer;

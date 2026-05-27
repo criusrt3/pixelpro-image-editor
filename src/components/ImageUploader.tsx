@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react'
-import { Upload, ImageIcon, X } from 'lucide-react'
+import { Upload, ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ImageUploaderProps {

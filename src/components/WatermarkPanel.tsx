@@ -313,7 +313,7 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
       <div className="flex gap-1.5 p-1 bg-surface rounded-lg">
         <button
           onClick={() => setMode('erase')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 sm:py-2 rounded-md text-xs font-medium transition-all min-h-[40px] touch-manipulation active:scale-95 ${
             mode === 'erase' ? 'bg-accent text-accent-foreground border border-brand/30 shadow-glow-sm' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
@@ -321,7 +321,7 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
         </button>
         <button
           onClick={() => setMode('scattered')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 sm:py-2 rounded-md text-xs font-medium transition-all min-h-[40px] touch-manipulation active:scale-95 ${
             mode === 'scattered' ? 'bg-accent text-accent-foreground border border-brand/30 shadow-glow-sm' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
@@ -361,7 +361,7 @@ export default function WatermarkPanel({ imageDataUrl }: WatermarkPanelProps) {
               <input
                 type="range" min="5" max="80" value={brushSize}
                 onChange={e => setBrushSize(Number(e.target.value))}
-                className="w-full h-1.5 appearance-none bg-border rounded-full cursor-pointer slider-thumb"
+                className="w-full h-2 appearance-none bg-border rounded-full cursor-pointer slider-thumb touch-manipulation"
                 style={{ background: `linear-gradient(to right, hsl(262 83% 65%) ${((brushSize - 5) / 75) * 100}%, hsl(var(--border)) ${((brushSize - 5) / 75) * 100}%)` }}
               />
             </div>

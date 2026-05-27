@@ -109,28 +109,28 @@ type BorderStyle = {
 const BORDER_STYLES: BorderStyle[] = [
   { id: 'none', label: '无边框', draw: () => {} },
   {
-    id: 'solid', label: '实线', draw: (ctx, cx, cy, r, size) => {
+    id: 'solid', label: '实线', draw: (ctx, _cx, _cy, _r, size) => {
       ctx.strokeStyle = ctx.strokeStyle; ctx.lineWidth = size
       ctx.stroke()
     }
   },
   {
-    id: 'double', label: '双线', draw: (ctx, cx, cy, r, size) => {
+    id: 'double', label: '双线', draw: (ctx, _cx, _cy, _r, size) => {
       ctx.lineWidth = size * 0.4; ctx.stroke()
     }
   },
   {
-    id: 'dashed', label: '虚线', draw: (ctx, cx, cy, r, size) => {
+    id: 'dashed', label: '虚线', draw: (ctx, _cx, _cy, _r, size) => {
       ctx.setLineDash([size * 2, size]); ctx.lineWidth = size; ctx.stroke(); ctx.setLineDash([])
     }
   },
   {
-    id: 'dotted', label: '点线', draw: (ctx, cx, cy, r, size) => {
+    id: 'dotted', label: '点线', draw: (ctx, _cx, _cy, _r, size) => {
       ctx.setLineDash([size * 0.5, size * 1.5]); ctx.lineWidth = size * 0.8; ctx.stroke(); ctx.setLineDash([])
     }
   },
   {
-    id: 'glow', label: '发光', draw: (ctx, cx, cy, r, size) => {
+    id: 'glow', label: '发光', draw: (ctx, _cx, _cy, _r, size) => {
       ctx.shadowColor = ctx.strokeStyle as string
       ctx.shadowBlur = size * 3; ctx.lineWidth = size * 0.8; ctx.stroke()
       ctx.shadowBlur = 0
@@ -597,7 +597,7 @@ export default function AvatarPanel({ imageDataUrl }: AvatarPanelProps) {
           <span>缩放</span>
           <input type="range" min="50" max="200" value={zoom}
             onChange={e => setZoom(Number(e.target.value))}
-            className="w-28 h-1 appearance-none rounded-full cursor-pointer slider-thumb"
+            className="w-28 h-2 appearance-none rounded-full cursor-pointer slider-thumb touch-manipulation"
             style={{ background: `linear-gradient(to right, hsl(262 83% 65%) ${((zoom - 50) / 150) * 100}%, hsl(var(--border)) ${((zoom - 50) / 150) * 100}%)` }} />
           <span className="w-8 text-brand font-semibold">{zoom}%</span>
           <button onClick={() => { setZoom(100); setPanX(0); setPanY(0) }} className="p-1 hover:text-foreground transition-colors" title="重置位置">
@@ -611,7 +611,7 @@ export default function AvatarPanel({ imageDataUrl }: AvatarPanelProps) {
       <div className="flex gap-1 p-1 bg-surface rounded-lg">
         {sections.map(s => (
           <button key={s.id} onClick={() => setActiveSection(s.id)}
-            className={cn('flex-1 py-1.5 rounded-md text-xs font-medium transition-all',
+            className={cn('flex-1 py-2 sm:py-1.5 rounded-md text-xs font-medium transition-all min-h-[36px] touch-manipulation active:scale-95',
               activeSection === s.id ? 'bg-accent text-accent-foreground border border-brand/30 shadow-glow-sm' : 'text-muted-foreground hover:text-foreground')}>
             {s.label}
           </button>
@@ -676,7 +676,7 @@ export default function AvatarPanel({ imageDataUrl }: AvatarPanelProps) {
                 </div>
                 <input type="range" min="2" max="24" value={borderWidth}
                   onChange={e => setBorderWidth(Number(e.target.value))}
-                  className="w-full h-1.5 appearance-none rounded-full cursor-pointer slider-thumb"
+                  className="w-full h-2 appearance-none rounded-full cursor-pointer slider-thumb touch-manipulation"
                   style={{ background: `linear-gradient(to right, hsl(262 83% 65%) ${((borderWidth - 2) / 22) * 100}%, hsl(var(--border)) ${((borderWidth - 2) / 22) * 100}%)` }} />
               </div>
 
@@ -745,7 +745,7 @@ export default function AvatarPanel({ imageDataUrl }: AvatarPanelProps) {
         <div className="flex gap-1">
           {[400, 600, 1000].map(s => (
             <button key={s} onClick={() => setOutputSize(s)}
-              className={cn('px-2.5 py-1.5 rounded-lg text-xs border transition-all',
+              className={cn('px-2.5 py-2 sm:py-1.5 rounded-lg text-xs border transition-all min-h-[36px] touch-manipulation active:scale-95',
                 outputSize === s ? 'bg-accent border-brand/40 text-accent-foreground' : 'bg-surface border-border text-muted-foreground hover:text-foreground')}>
               {s}px
             </button>
