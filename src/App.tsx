@@ -256,6 +256,28 @@ export default function App() {
                     {imageFile.name || 'sample-portrait.jpg'} · {imageFile.size ? (imageFile.size / 1024).toFixed(0) + ' KB' : '示例图片'}
                   </span>
                 )}
+                <div className="flex items-center gap-1 ml-auto">
+                  <label className="text-xs text-brand hover:text-brand/80 cursor-pointer font-medium transition-colors touch-manipulation min-h-[32px] flex items-center px-2 rounded-md hover:bg-accent/50">
+                    <Upload className="w-3 h-3 mr-1" />换图
+                    <input type="file" accept="image/*" className="sr-only"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (!file || !file.type.startsWith('image/')) return
+                        const reader = new FileReader()
+                        reader.onload = ev => {
+                          if (ev.target?.result) {
+                            setImageFile(file)
+                            setImageDataUrl(ev.target.result as string)
+                          }
+                        }
+                        reader.readAsDataURL(file)
+                        e.target.value = ''
+                      }} />
+                  </label>
+                  <button onClick={handleClearImage} className="text-xs text-muted-foreground hover:text-foreground transition-colors touch-manipulation min-h-[32px] flex items-center px-2 rounded-md hover:bg-accent/50">
+                    <X className="w-3 h-3 mr-1" />清除
+                  </button>
+                </div>
               </div>
 
               <div ref={previewPinch.viewportRef} className="relative flex items-center justify-center bg-surface rounded-xl sm:rounded-2xl border border-border overflow-hidden checkered-bg"
